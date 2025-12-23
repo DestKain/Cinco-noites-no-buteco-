@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cinco Noites no Buteco - V2.8</title>
+    <style>
+        :root { --red: #8b0000; --green: #0f0; }
+        body { background: #000; color: #fff; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; user-select: none; }
+        .screen { display: none; height: 100vh; width: 100vw; position: relative; }
+        
+        /* Menu com Gato Fantasma */
+        #menu { display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #111 0%, #000 100%); }
+        #gato-fantasma { 
+            position: absolute; font-size: 150px; z-index: 0; 
+            animation: ghost 6s infinite ease-in-out; opacity: 0; 
+        }
+        @keyframes ghost { 0%, 100% { opacity: 0; transform: scale(0.8); } 50% { opacity: 0.3; transform: scale(1.1); } }
+        
+        .menu-content { z-index: 2; text-align: center; }
+        .btn { padding: 15px 35px; margin: 10px; background: transparent; border: 2px solid #fff; color: #fff; cursor: pointer; font-family: inherit; font-size: 18px; }
+        .btn:hover { background: #fff; color: #000; }
+        
+        .credits { position: absolute; bottom: 10px; left: 10px; text-align: left; font-size: 14px; color: #666; }
+
+        /* Jornal */
+        #jornal { background: #ccc; color: #000; display: none; align-items: center; justify-content: center; }
+        .folha { background: #fff; padding: 30px; border: 2px solid #333; box-shadow: 10px 10px 0px #555; max-width: 350px; cursor: pointer; }
+
+        /* Escritório e Defesas */
+        #office { background: #1a1a1a; height: 100%; display: flex; justify-content: space-between; align-items: center; }
+        .v-porta { width: 15%; height: 100%; background: #333; border-right: 4px solid #000; transition: 0.4s; }
+        .fechada { transform: translateY(0); background: #444; }
+        .aberta { transform: translateY(-100%); }
+        .v-tubo { width: 90px; height: 90px; border-radius: 50%; border: 6px solid #333; position: absolute; right: 15%; bottom: 20%; transition: 0.2s; }
+        .tubo-on { background: var(--red); border-color: red; box-shadow: 0 0 20px red; }
+
+        /* Câmeras */
+        #monitor { display: none; position: absolute; inset: 0; background: #000; z-index: 10; border: 8px solid #222; }
+        .cam-grid { display: flex; height: 100%; }
+        .cam-render { flex-grow: 1; display: flex; align-items: center; justify-content: center; font-size: 120px; filter: brightness(0.2); position: relative; }
+        .cam-list { width: 180px; background: #050505; padding: 10px; border-left: 2px solid var(--green); overflow-y: auto; }
+        .cam-btn { width: 100%; padding: 12px; margin-bottom: 5px; background: #000; color: var(--green); border: 1px solid var(--green); cursor: pointer; font-size: 12px; }
+
+        /* HUD e Controles */
+        .hud { position: absolute; top: 0; width: 100%; display: flex; justify-content: space-around; padding: 10px; background: rgba(0,0,0,0.8); z-index: 5; }
+        .controls { position: absolute; bottom: 10px; width: 100%; display: flex; justify-content: center; gap: 10px; z-index: 20; }
+        .active-btn { background: var(--red) !important; border-color: #ff0000 !important; }
+
+        #jumpscare { background: #000; z-index: 100; font-size: 200px; display: none; align-items: center; justify-content: center; position: fixed; inset: 0; }
+    </style>
+</head>
+<body>
+
+    <div id="menu" class="screen" style="display: flex;">
+        <div id="gato-fantasma">😾</div>
+        <div class="menu-content">
+            <h1 style="letter-spacing: 5px;">CINCO NOITES NO BUTECO</h1>
+            <h2 style="color: #666;">CAPÍTULO 0 G</h2>
+            <button class="btn" onclick="startNew()">JOGAR NOVO</button><br>
+            <button id="cont-btn" class="btn" style="display:none" onclick="loadGame()">CONTINUAR</button>
+        </div>
+        <div class="credits">
+            <b>DEST Kain</b><br>
+            Versão: 2.8
+        </div>
+    </div>
+
+    <div id="jornal" class="screen" onclick="beginNight()">
+        <div class="folha">
+            <h2 style="text-decoration: underline;">DIÁRIO DO BUTECO</h2>
+            <p><strong>VAGA DE EMPREGO:</strong> Precisamos de um segurança noturno para o Buteco Do Dest.</p>
+            <p>O candidato deve ignorar barulhos metálicos e movimentos nos corredores.</p>
+            <p style="margin-top:40px; font-size: 12px; color: #777;">(Toque para aceitar o cargo)</p>
+        </div>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div class="hud">
+            <span>HORA: <b id="h-val">12</b> AM</span>
+            <span>ENERGIA: <b id="e-val">100</b>%</span>
+            <span>NOITE: <b id="n-val">1</b></span>
+        </div>
+
+        <div id="office">
+            <div id="p-vis" class="v-porta aberta"></div>
+            <div style="font-size: 60px;">🖥️</div>
+            <div id="t-vis" class="v-tubo"></div>
+        </div>
+
+        <div id="monitor">
+            <div class="cam-grid">
+                <div id="render" class="cam-render">
+                    <span id="entidade"></span>
+                    <button id="pilha" style="display:none; position:absolute; background:none; border:none; font-size:50px; cursor:pointer;" onclick="addPower()">🔋</button>
+                </div>
+                <div class="cam-list" id="cam-btns"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onmousedown="flashlight(1)" onmouseup="flashlight(0)" ontouchstart="flashlight(1)" ontouchend="flashlight(0)">LUZ</button>
+            <button id="btn-p" class="btn" onclick="trigger('p')">PORTA</button>
+            <button id="btn-t" class="btn" onclick="trigger('t')">TUBO</button>
+            <button id="btn-c" class="btn" onclick="trigger('c')">CAM</button>
+        </div>
+    </div>
+
+    <div id="jumpscare">😾🩸</div>
+
+    <script>
+        const snd = (u, v=0.2) => { let a = new Audio(u); a.volume = v; return a; };
+        const s_click = snd('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+        const s_scare = snd('https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptoken=1f748805-728b-4929-9e7c-0865e5339686', 0.5);
+
+        let data = { 
+            run: false, e: 100, h: 0, n: 1, 
+            p: 0, t: 0, c: 0, l: 0, 
+            cam: 'Palco', ruby: 'Palco', endo: 'Sala Concerto' 
+        };
+
+        const cams = ['Palco', 'Cozinha', 'Banheiro', 'Corredor Esquerdo', 'Tubulação Direita', 'Recepção', 'Sala Concerto'];
+
+        window.onload = () => {
+            let s = localStorage.getItem('buteco_save');
+            if(s) {
+                document.getElementById('cont-btn').style.display = 'inline-block';
+                document.getElementById('cont-btn').innerText = "CONTINUAR NOITE " + s;
+                data.n = parseInt(s);
+            }
+        };
+
+        function startNew() {
+            data.n = 1;
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('jornal').style.display = 'flex';
+        }
+
+        function loadGame() {
+            document.getElementById('menu').style.display = 'none';
+            beginNight();
+        }
+
+        function beginNight() {
+            data.run = true;
+            document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+            document.getElementById('game-screen').style.display = 'block';
+            document.getElementById('n-val').innerText = data.n;
+            setupCams();
+            gameLoop();
+        }
+
+        function setupCams() {
+            const container = document.getElementById('cam-btns');
+            container.innerHTML = '';
+            cams.forEach(c => {
+                let b = document.createElement('button');
+                b.className = 'cam-btn';
+                b.innerText = c;
+                b.onclick = () => { data.cam = c; s_click.play(); updateCam(); };
+                container.appendChild(b);
+            });
+        }
+
+        function trigger(type) {
+            if(type === 'p') { data.p = !data.p; document.getElementById('p-vis').className = data.p ? 'v-porta fechada' : 'v-porta aberta'; document.getElementById('btn-p').classList.toggle('active-btn'); }
+            if(type === 't') { data.t = !data.t; document.getElementById('t-vis').classList.toggle('tubo-on'); document.getElementById('btn-t').classList.toggle('active-btn'); }
+            if(type === 'c') { data.c = !data.c; document.getElementById('monitor').style.display = data.c ? 'block' : 'none'; document.getElementById('btn-c').classList.toggle('active-btn'); updateCam(); }
+            s_click.play();
+        }
+
+        function flashlight(on) {
+            data.l = on;
+            document.getElementById('office').style.background = on ? '#333' : '#1a1a1a';
+            document.getElementById('render').style.filter = on ? 'brightness(1.2)' : 'brightness(0.2)';
+        }
+
+        function updateCam() {
+            let img = "";
+            if(data.ruby === data.cam) img = "😾";
+            if(data.endo === data.cam) img += "🤖";
+            document.getElementById('entidade').innerText = img;
+            // Pilha aleatória
+            document.getElementById('pilha').style.display = (Math.random() > 0.8) ? 'block' : 'none';
+        }
+
+        function addPower() { data.e = Math.min(data.e + 10, 100); document.getElementById('pilha').style.display = 'none'; }
+
+        function gameLoop() {
+            if(!data.run) return;
+
+            // Relógio (60 segundos por hora)
+            setTimeout(() => {
+                data.h++;
+                document.getElementById('h-val').innerText = data.h;
+                if(data.h >= 6) win(); else gameLoop();
+            }, 60000);
+
+            // Consumo de Energia
+            setInterval(() => {
+                if(!data.run) return;
+                let cost = 0.08 + (data.p*0.35) + (data.t*0.35) + (data.c*0.2) + (data.l*0.4);
+                data.e -= cost;
+                document.getElementById('e-val').innerText = Math.floor(data.e);
+                if(data.e <= 0) die("🪫");
+            }, 1000);
+
+            // Inteligência Artificial
+            setInterval(() => {
+                if(!data.run || data.h < 1) return;
+                
+                // Movimento Ruby
+                if(Math.random() > 0.6) {
+                    if(data.ruby === 'Recepção') {
+                        if(!data.p) die("😾"); else data.ruby = 'Palco';
+                    } else {
+                        data.ruby = data.ruby === 'Palco' ? 'Cozinha' : (data.ruby === 'Cozinha' ? 'Corredor Esquerdo' : 'Recepção');
+                    }
+                }
+
+                // Movimento Endo
+                if(Math.random() > 0.6) {
+                    if(data.endo === 'Recepção') {
+                        if(!data.t) die("🤖"); else data.endo = 'Sala Concerto';
+                    } else {
+                        data.endo = data.endo === 'Sala Concerto' ? 'Banheiro' : (data.endo === 'Banheiro' ? 'Tubulação Direita' : 'Recepção');
+                    }
+                }
+                updateCam();
+            }, 8000 - (data.n * 500));
+        }
+
+        function die(m) {
+            data.run = false;
+            s_scare.play();
+            document.getElementById('jumpscare').style.display = 'flex';
+            document.getElementById('jumpscare').innerText = m;
+            setTimeout(() => location.reload(), 3000);
+        }
+
+        function win() {
+            data.run = false;
+            alert("6 AM! Sobreviveu à Noite " + data.n);
+            data.n++;
+            localStorage.setItem('buteco_save', data.n);
+            location.reload();
+        }
+
+        // Atalhos de Teclado
+        window.onkeydown = (e) => {
+            if(e.code === 'Space') flashlight(1);
+            if(e.key === 'p') trigger('p');
+            if(e.key === 't') trigger('t');
+            if(e.key === 'm') trigger('c');
+        };
+        window.onkeyup = (e) => { if(e.code === 'Space') flashlight(0); };
+    </script>
+</body>
+</html>
